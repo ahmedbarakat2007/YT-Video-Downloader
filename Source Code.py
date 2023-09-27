@@ -7,6 +7,9 @@ import os
 import tkinter as tkk
 from tkinter import ttk
 import tkinter as tk
+import moviepy.editor as mpe
+import pytube
+import shutil
 
 root = Tk()
 root.geometry ('640x600') # Size of the window
@@ -16,23 +19,46 @@ root.iconbitmap("Textures\icon.ico")
 title = tk.StringVar
 
 def download():
-    try: 
-        url = YouTube(str(link.get())) #This captures the link(url) and locates it from YouTube.
-    except: 
+    vname = "clip.mp4"
+    aname = "audio.mp3"
+    try:
+       global title
+       title = pytube.YouTube(str(link.get())).title
+    except:
         msg = messagebox.showerror( "ERROR!!!!", "Connection Error")
-    global title
-    title = url.title
+
+    # Download video and rename
     msg = messagebox.askokcancel( "Alert", "Are you Sure You want to download " + title + " as MP4 File")
     if msg:
-       abc= "1"
+        abc= "1"
     else:
         return
-    video = url.streams.filter(res= n.get()).first()
-    out_file = video.download("Downloaded Videos")
-    base, ext = os.path.splitext(out_file)
-    new_file = base + '.mp4'
-    os.rename(out_file, new_file)
-    msg = messagebox.showinfo( "Alert", "Downloaded Go Check Download Folder")
+    try:
+        video = pytube.YouTube(str(link.get())).streams.filter(subtype='mp4', res=n.get()).first().download("Process")
+        os.rename(video ,"Process/" + vname)
+
+# Download audio and rename
+        audio = pytube.YouTube(str(link.get())).streams.filter(only_audio=True).first().download("Process")
+        os.rename(audio,"Process/" + aname)
+    except:
+        msg = messagebox.showerror( "ERROR!!!!", "Something Wrong happened")
+
+# Setting the audio to the video
+    try:
+        video = mpe.VideoFileClip("Process/" +vname)
+        audio = mpe.AudioFileClip("Process/" +aname)
+        final = video.set_audio(audio)
+
+    # Output result
+        final.write_videofile("video.mp4")
+        shutil.move("video.mp4", "Downloaded Videos/")
+        os.rename("Process/video.mp4",title + ".mp4")
+
+# Delete video and audio to keep the result
+        os.remove("Process/clip.mp4")
+        os.remove("Process/audio.mp3")
+    except:
+        msg = messagebox.showerror( "ERROR!!!!", "Something Wrong happened")
 
 def download1():
     try: 
@@ -84,6 +110,7 @@ def downloadpage():
     m3.title('Loading...')
     Label(m3,bg="#1f242b").pack()
     Label(m3, text='Downloading....',bg="#1f242b",fg='white', font='san-serif 14 bold').pack()
+    Label(m3, text='It Might Take 5 Minutes',bg="#1f242b",fg='white', font='san-serif 10 bold').pack()
     download()
     close_loading()
     m3.mainloop()
@@ -221,7 +248,7 @@ link_enter = EntryEx(root, width=70, textvariable=link).pack()
 Label(root, text="" ,bg="#1f242b").pack()
 Label(root, text="First, Choose Reasolution", font='san-serif 12 bold' ,bg="#1f242b", foreground="white").pack()
 
-reschoosen2 = ["144p","240p","360p","480p","720p"]
+reschoosen2 = ["144p","240p","360p","480p","720p","1080p","1440p","2160p"]
 
 n = tk.StringVar()
 reschoosen = ttk.Combobox(root, width = 27,values=reschoosen2, textvariable = n).pack()
